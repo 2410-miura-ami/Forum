@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <link th:href="@{/css/style.css}" rel="styleSheet">
+    <title>TOP</title>
+</head>
+<body>
+<div class="header-contents">
+    <h1>匿名掲示板</h1>
+</div>
+<div class="main-contents">
+    <a href="/new">
+        <button class="new-button" type="button">新規投稿</button>
+    </a>
+    <div class="message-icon" th:each="content : ${contents}">
+        <div>
+            ID : <span th:text="${content.id}"/>
+        </div>
+        <div class="text">
+            投稿 : <span th:text="${content.content}"/>
+        </div>
+        <div class="delete-button">
+            <!--<button class="delete-button" type="button" th:field="${content.id}">削除</button>-->
+            <form th:method="delete" th:action="@{/delete/{id}(id=${content.id})}" >
+                <input type="submit" value="削除" />
+            </form>
+        </div>
+        <div class="edit-button">
+            <form th:method="get" th:action="@{/edit/{id}(id=${content.id})}" >
+                <input type="submit" value="編集" />
+            </form>
+        </div>
+        <div class="comment">
+            <form th:method="post" th:action="@{/comment/{id}(id=${content.id})}" th:object="${formModel}">
+                <div class="form-area">
+                    <label>返信</label>
+                    <textarea class="tweet-box" th:field="*{content}" size="20" maxlength="200" /></textarea><br/>
+                    <input type="submit" value="返信" />
+                    <!--一つ目のform属性の投稿ボタンを押すと、「th:field="*{content}"」がサーバー側に渡されてDBにinsertされていくような流れとなりますね。-->
+                    <!-- 返信コメントがあれば表示 -->
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
