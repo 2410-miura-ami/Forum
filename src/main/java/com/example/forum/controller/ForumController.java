@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.text.ParseException;
 import java.util.List;
 
 @Controller
@@ -23,14 +24,21 @@ public class ForumController {
      * 投稿内容表示処理
      */
     @GetMapping
-    public ModelAndView top(@PathVariable Integer id) {
+    public ModelAndView top(@RequestParam(name="startDate", required=false) String startDate, @RequestParam(name="endDate", required=false) String endDate)throws ParseException {
         ModelAndView mav = new ModelAndView();
         // 投稿を全件取得
         //この後、Service → Repository へと処理が続いていきます。
         //その結果、各値がReportForm型のリストである「contentData」へ格納されます
-        List<ReportForm> contentData = reportService.findAllReport();
+        List<ReportForm> contentData = reportService.findAllReport(startDate, endDate);
+
+        // form用の空のentityを準備
+        CommentForm commentForm = new CommentForm();
+        // 準備した空のFormを保管
+        //これをtop.htmlのth:object="${formMedel}"に指定してる
+        mav.addObject("formModel", commentForm);
+
         //コメントの追加機能
-        List<CommentForm> commentContentData = commentService.findByIdComment(id);
+        List<CommentForm> commentContentData = commentService.findAllComment();
         // 画面遷移先を指定(「現在のURL」/top へ画面遷移することを指定)
         mav.setViewName("/top");
         // 投稿データオブジェクトを保管(先ほどのcontentDataをModelAndView型の変数mavへ格納)
@@ -125,9 +133,54 @@ public class ForumController {
         commentForm.setReportId(id);
         commentForm.setContent(commentForm.getContent());
         commentService.saveComment(commentForm);
+
         // その後、rootディレクトリ、つまり、⑤サーバー側：投稿内容表示機能の処理へリダイレクト
         //投稿をテーブルに格納した後、その投稿を表示させてトップ画面へ戻るという仕様
         return new ModelAndView("redirect:/");
     }
 
+    /*
+     * コメント編集画面表示
+     * 画面遷移先を指定
+     */
+    @GetMapping("/commentEdit/{id}")
+    public ModelAndView commentEditContent(@PathVariable Integer id) {
+        ModelAndView mav = new ModelAndView();
+        //編集する投稿を取得
+        CommentForm commentForm = commentService.editComment(id);
+        //編集する投稿をセット
+        mav.addObject("formModel", commentForm);
+        //画面遷移先を指定(commentEdit.html)
+        mav.setViewName("/commentEdit");
+
+        return mav;
+    }
+
+    /*
+     * コメント編集処理
+     */
+    @PutMapping("/commentUpdate/{id}")
+    public ModelAndView commentUpdateContent(@PathVariable Integer id, @ModelAttribute("formModel") CommentForm commentForm) {
+        // 投稿をテーブルに格納
+        //Report型の変数reportを引数として、CommentServiceのsaveReportを実行します。
+        commentForm.setId(id);
+        commentService.saveComment(commentForm);
+        // その後、rootディレクトリ、つまり、⑤サーバー側：投稿内容表示機能の処理へリダイレクト
+        //投稿をテーブルに格納した後、その投稿を表示させてトップ画面へ戻るという仕様
+        return new ModelAndView("redirect:/");
+    }
+
+    /*
+     * コメント削除処理
+     */
+    @DeleteMapping("/commentDelete/{id}")
+    public ModelAndView commentDeleteContent(@PathVariable Integer id) {
+        // 投稿をテーブルから削除
+        ////commentServiceのdeleteCommentを実行
+        commentService.deleteComment(id);
+        // rootへリダイレクト
+        // その後、rootディレクトリ、つまり、⑤サーバー側：投稿内容表示機能の処理へリダイレクト
+        //投稿をテーブルから削除した後、投稿内容表示処理を経てトップ画面へ戻るという仕様
+        return new ModelAndView("redirect:/");
+    }
 }

@@ -9,6 +9,11 @@
 <div class="header-contents">
     <h1>匿名掲示板</h1>
 </div>
+日付
+<form th:action="@{/}" th:method="get">
+    <input type="date" name="startDate" value="${startDate}" />～<input type="date" name="endDate" value="${endDate}" />
+    <input type="submit" value="絞り込み" />
+</form>
 <div class="main-contents">
     <a href="/new">
         <button class="new-button" type="button">新規投稿</button>
@@ -38,10 +43,34 @@
                     <textarea class="tweet-box" th:field="*{content}" size="20" maxlength="200" /></textarea><br/>
                     <input type="submit" value="返信" />
                     <!--一つ目のform属性の投稿ボタンを押すと、「th:field="*{content}"」がサーバー側に渡されてDBにinsertされていくような流れとなりますね。-->
-                    <!-- 返信コメントがあれば表示 -->
-
                 </div>
             </form>
+                    <!-- 返信コメントがあれば表示 -->
+                    <div class="comment-display" th:each="commentContent : ${commentContents}">
+                        <th:block th:if="${content.id == commentContent.reportId}">
+                            <span th:text="${commentContent.content}"/>
+
+                            <!--<div class="edit-button">
+                                <a th:href="@{/commentEdit/{id}(id=${commentContent.id})}">
+                                    <input type="button" value="編集">
+                                </a>
+                            </div>-->
+
+                            <div class="delete-button">
+                                <form th:method="delete" th:action="@{/commentDelete/{id}(id=${commentContent.id})}" >
+                                    <input type="submit" value="削除" />
+                                </form>
+                            </div>
+
+                            <div class="edit-button">
+                                <form th:method="get" th:action="@{/commentEdit/{id}(id=${commentContent.id})}" >
+                                    <input type="submit" value="編集" />
+                                </form>
+                            </div>
+                        </th:block>
+                        　 　
+                    </div>
+
         </div>
     </div>
 </div>

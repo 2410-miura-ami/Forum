@@ -28,13 +28,13 @@ public class Comment {
     @Column
     private String content;
 
-    @Column
+    @Column(name = "report_id", insertable = true, updatable = false)
     private int reportId;
 
-    @Column(name = "created_date", insertable = true, updatable = false)
+    @Column(name = "created_date", insertable = false, updatable = false)
     private Date createdDate;
 
-    @Column
+    @Column(name = "updated_date", insertable = false, updatable = false)
     private Date updatedDate;
 
 }

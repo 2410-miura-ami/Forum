@@ -23,12 +23,11 @@ public class CommentService {
      * レコード取得処理
      * findAllReportメソッドで、commentRepositoryのfindAllを実行します
      */
-    public List<CommentForm> findByIdComment(Integer id) {
+    public List<CommentForm> findAllComment() {
         //findByIdメソッドは JpaRepository で定義されているため、CommentRepositoryでメソッドの定義をすることなく、使用できます
-        List<Comment> results = new ArrayList<>();
-        //results.add((Report)reportRepository.findById(id).orElse(null));
-        results.add((Comment)commentRepository.findById(id).orElse(null));
+        List<Comment> results = commentRepository.findAll();
         List<CommentForm> comments = setCommentForm(results);
+
         return comments;
     }
 
@@ -47,6 +46,7 @@ public class CommentService {
             comment.setContent(result.getContent());
             comment.setReportId(result.getReportId());
             comment.setCreatedDate(result.getCreatedDate());
+            comment.setUpdatedDate(result.getUpdatedDate());
             comments.add(comment);
         }
         return comments;
@@ -74,5 +74,26 @@ public class CommentService {
         comment.setCreatedDate(reqComment.getCreatedDate());
         comment.setUpdatedDate(reqComment.getUpdatedDate());
         return comment;
+    }
+
+    /*
+     * 編集画面表示のため、編集レコード参照
+     * findByIdReportメソッドで、reportRepositoryのfindAllを実行します
+     */
+    public CommentForm editComment(Integer id) {
+        //findByIdメソッドは JpaRepository で定義されているため、CommentRepositoryでメソッドの定義をすることなく、使用できます
+        List<Comment> results = new ArrayList<>();
+        results.add((Comment)commentRepository.findById(id).orElse(null));
+        //DBから取得した値をsetReportFormメソッドでEntity→Formに詰め直して、Controllerに戻す
+        List<CommentForm> comments = setCommentForm(results);
+        return comments.get(0);
+    }
+
+    /*
+     * コメントのレコード削除
+     */
+    public void deleteComment(Integer id) {
+        //deleteByIdメソッドは JpaRepository で定義されているため、CommentRepositoryでメソッドの定義をすることなく、使用できます
+        commentRepository.deleteById(id);
     }
 }
