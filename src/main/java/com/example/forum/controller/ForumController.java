@@ -37,6 +37,17 @@ public class ForumController {
     @GetMapping
     public ModelAndView top(@RequestParam(name="startDate", required=false) String startDate, @RequestParam(name="endDate", required=false) String endDate)throws ParseException {
         ModelAndView mav = new ModelAndView();
+        //編集時にsessionに格納したエラーメッセージを取得
+        List<String> errorMessages = (List<String>) session.getAttribute("errorMessages");
+        Integer reportID = (Integer) session.getAttribute("reportID");
+        //「エラーメッセージが空じゃなければ、エラーメッセージをセットする。」mav.addObjectすることで画面表示の準備できる
+        if((errorMessages != null) && (!errorMessages.isEmpty())) {
+            mav.addObject("errorMessages", errorMessages);
+            mav.addObject("reportID", reportID);
+        }
+        //エラーメッセージが常に出てきてしまうので、格納後にセッションを破棄する
+        session.invalidate();
+
         // 投稿を全件取得
         //この後、Service → Repository へと処理が続いていきます。
         //その結果、各値がReportForm型のリストである「contentData」へ格納されます
@@ -76,10 +87,11 @@ public class ForumController {
         //errorMessages.add(errorMessageString);
         List<String> errorMessages = (List<String>) session.getAttribute("errorMessages");
         //「エラーメッセージが空じゃなければ、エラーメッセージをセットする。」mav.addObjectすることで画面表示の準備できる
-        if(!errorMessages.isEmpty()) {
+        if((errorMessages != null) && (!errorMessages.isEmpty())) {
             mav.addObject("errorMessages", errorMessages);
         }
-
+        //エラーメッセージが常に出てきてしまうので、格納後にセッションを破棄する
+        session.invalidate();
         // 画面遷移先を指定
         mav.setViewName("/new");
         // 準備した空のFormを保管
@@ -142,6 +154,15 @@ public class ForumController {
         ModelAndView mav = new ModelAndView();
         //編集する投稿を取得
         ReportForm reportForm = reportService.editReport(id);
+        //編集時にsessionに格納したエラーメッセージを取得
+        List<String> errorMessages = (List<String>) session.getAttribute("errorMessages");
+        //「エラーメッセージが空じゃなければ、エラーメッセージをセットする。」mav.addObjectすることで画面表示の準備できる
+        if((errorMessages != null) && (!errorMessages.isEmpty())) {
+            mav.addObject("errorMessages", errorMessages);
+        }
+        //エラーメッセージが常に出てきてしまうので、格納後にセッションを破棄する
+        session.invalidate();
+
         //編集する投稿をセット
         mav.addObject("formModel", reportForm);
         //画面遷移先を指定(edit.html)
@@ -154,15 +175,26 @@ public class ForumController {
      * 投稿編集処理
      */
     @PutMapping("/update/{id}")
-    public ModelAndView updateContent(@PathVariable Integer id, @ModelAttribute("formModel") ReportForm reportForm)throws ParseException {
+    public ModelAndView updateContent(@PathVariable Integer id, @Valid @ModelAttribute("formModel") ReportForm reportForm, BindingResult bindingResult)throws ParseException {
+        //バリデーション
+        List<String> errorMessages = new ArrayList<String>();
+
+        if (bindingResult.hasErrors()) {
+            //エラーがあったら、エラーメッセージを格納する
+            //BindingResultのgetFieldErrors()により、(フィールド名と)エラーメッセージを取得できます
+            for (FieldError error : bindingResult.getFieldErrors()){
+                String message = error.getDefaultMessage();
+                //取得したエラーメッセージをエラーメッセージのリストに格納
+                errorMessages.add(message);
+            }
+
+            // セッションに保存（リダイレクトしても値を保存できるようにするため）
+            session.setAttribute("errorMessages", errorMessages);
+
+            //編集画面に遷移
+            return new ModelAndView("redirect:/edit/{id}");
+        }
         // 投稿をテーブルに格納
-
-        //updateDateも更新しないといけない
-        //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        //Date updateDate = null;
-        //String updateStr = sdf.format(new Date());
-        //updateDate = sdf.parse(updateStr);
-
         //Report型の変数reportを引数として、ReportServiceのsaveReportを実行します。
         reportForm.setId(id);
         //reportForm.setUpdatedDate(updateDate);
@@ -176,7 +208,27 @@ public class ForumController {
      * コメント機能追加
      */
     @PostMapping("/comment/{reportId}")
-    public ModelAndView commentContent(@PathVariable Integer reportId, @ModelAttribute("formModel") CommentForm commentForm)throws ParseException {
+    public ModelAndView commentContent(@PathVariable Integer reportId, @Valid @ModelAttribute("formModel") CommentForm commentForm, BindingResult bindingResult)throws ParseException {
+        //バリデーション
+        List<String> errorMessages = new ArrayList<String>();
+
+        if (bindingResult.hasErrors()) {
+            //エラーがあったら、エラーメッセージを格納する
+            //BindingResultのgetFieldErrors()により、(フィールド名と)エラーメッセージを取得できます
+            for (FieldError error : bindingResult.getFieldErrors()){
+                String message = error.getDefaultMessage();
+                //取得したエラーメッセージをエラーメッセージのリストに格納
+                errorMessages.add(message);
+            }
+
+            // セッションに保存（リダイレクトしても値を保存できるようにするため）
+            session.setAttribute("errorMessages", errorMessages);
+            session.setAttribute("reportID", reportId);
+
+            //top画面に遷移
+            return new ModelAndView("redirect:/");
+        }
+
         // 投稿をテーブルに格納
         //Comment型の変数commentを引数として、ReportServiceのsaveReportを実行します。
         commentForm.setReportId(reportId);
@@ -204,6 +256,18 @@ public class ForumController {
         ModelAndView mav = new ModelAndView();
         //編集する投稿を取得
         CommentForm commentForm = commentService.editComment(id);
+
+        //セッションに格納したエラーメッセージを取得
+        List<String> errorMessages = (List<String>)session.getAttribute("errorMessages");
+        //最初の編集画面表示の際はエラーメッセージがnull(バリデーションまだ行ってないから)なので、
+        // nullではない時とエラーメッセージが空ではない時で条件設定する
+        if((errorMessages != null) && (!errorMessages.isEmpty())){
+            //画面表示できるようにmav.addObjectで格納
+            mav.addObject("errorMessages", errorMessages);
+        }
+        //エラーメッセージが常に出てしまうので、格納後にセッションを破棄
+        session.invalidate();
+
         //編集する投稿をセット
         mav.addObject("formModel", commentForm);
         //画面遷移先を指定(commentEdit.html)
@@ -216,7 +280,27 @@ public class ForumController {
      * コメント編集処理
      */
     @PutMapping("/commentUpdate/{id}")
-    public ModelAndView commentUpdateContent(@PathVariable Integer id, @ModelAttribute("formModel") CommentForm commentForm)throws ParseException {
+    public ModelAndView commentUpdateContent(@PathVariable Integer id, @Valid @ModelAttribute("formModel") CommentForm commentForm, BindingResult bindingResult)throws ParseException {
+        //バリデーション
+        List<String> errorMessages = new ArrayList<>();
+
+        if(bindingResult.hasErrors()){
+            //バリデーションでエラーがあったらbindingResultにエラーが入るようになっていて、そのbindingResultにエラーがあったら
+            //そのエラーがどういうものか、内容を取得して、その中でエラーメッセージを取得する
+            for (FieldError error : bindingResult.getFieldErrors()){
+                String message = error.getDefaultMessage();
+                //取得したエラーメッセージをリストに格納
+                errorMessages.add(message);
+            }
+
+            //エラーメッセージのリストをセッションに格納（のちにリダイレクトするから値の保持ができるようにセッション使う）
+            session.setAttribute("errorMessages", errorMessages);
+
+            //top画面に遷移
+            return new ModelAndView("redirect:/commentEdit/{id}");
+        }
+
+
         // 投稿をテーブルに格納
         //Report型の変数reportを引数として、CommentServiceのsaveReportを実行します。
         commentForm.setId(id);

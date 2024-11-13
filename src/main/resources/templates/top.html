@@ -40,6 +40,12 @@
             <form th:method="post" th:action="@{/comment/{reportId}(reportId=${content.id})}" th:object="${formModel}">
                 <div class="form-area">
                     <label>返信</label>
+                    <!--返信投稿のエラーメッセージを表示-->
+                   <div th:if="${reportID == content.id}">
+                        <div class="errorMessages" th:each="errorMessage : ${errorMessages}">
+                            <p th:text="${errorMessage}"></p>
+                        </div>
+                   </div>
                     <textarea class="tweet-box" th:field="*{content}" size="20" maxlength="200" /></textarea><br/>
                     <input type="submit" value="返信" />
                     <!--一つ目のform属性の投稿ボタンを押すと、「th:field="*{content}"」がサーバー側に渡されてDBにinsertされていくような流れとなりますね。-->

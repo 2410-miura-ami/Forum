@@ -1,5 +1,6 @@
 package com.example.forum.controller.form;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,6 +14,7 @@ import java.util.Date;
 public class CommentForm {
 
     private int id;
+    @NotEmpty(message = "コメントを入力してください")
     private String content;
     private int reportId;
     private Date createdDate;
