@@ -50,7 +50,7 @@ public class ReportService {
         Date end = sdf.parse(endDate);
 
         //findAllメソッドは JpaRepository で定義されているため、ReportRepositoryでメソッドの定義をすることなく、使用できます
-        List<Report> results = reportRepository.findByCreatedDateBetween(start, end);
+        List<Report> results = reportRepository.findByCreatedDateBetweenOrderByUpdatedDateDesc(start, end);
         //List<Report> results = reportRepository.findAllByOrderByIdDesc();
         List<ReportForm> reports = setReportForm(results);
         return reports;
@@ -68,6 +68,8 @@ public class ReportService {
             Report result = results.get(i);
             report.setId(result.getId());
             report.setContent(result.getContent());
+            report.setCreatedDate(result.getCreatedDate());
+            report.setUpdatedDate(result.getUpdatedDate());
             reports.add(report);
         }
         return reports;
@@ -76,7 +78,7 @@ public class ReportService {
     /*
      * レコード追加
      */
-    public void saveReport(ReportForm reqReport) {
+    public void saveReport(ReportForm reqReport)throws ParseException {
         Report saveReport = setReportEntity(reqReport);
         //saveメソッドは JpaRepository で定義されているため、ReportRepositoryでメソッドの定義をすることなく、使用できます
         reportRepository.save(saveReport);
@@ -87,10 +89,20 @@ public class ReportService {
      * setReportEntityメソッドでFormからEntityに詰め直してRepositoryに渡しています
      * これはEntityはデータアクセス時の入れ物、FormはViewへの入出力時に使用する入れ物と役割を分けているためです
      */
-    private Report setReportEntity(ReportForm reqReport) {
+    private Report setReportEntity(ReportForm reqReport)throws ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date updateDate = null;
+        Date createDate = null;
+        String updateStr = sdf.format(new Date());
+        String createStr = sdf.format(new Date());
+        updateDate = sdf.parse(updateStr);
+        createDate = sdf.parse(createStr);
+
         Report report = new Report();
         report.setId(reqReport.getId());
         report.setContent(reqReport.getContent());
+        report.setCreatedDate(createDate);
+        report.setUpdatedDate(updateDate);
         return report;
     }
 

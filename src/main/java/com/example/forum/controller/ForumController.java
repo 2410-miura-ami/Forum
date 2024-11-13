@@ -2,14 +2,23 @@ package com.example.forum.controller;
 
 import com.example.forum.controller.form.CommentForm;
 import com.example.forum.controller.form.ReportForm;
+import com.example.forum.repository.entity.Report;
 import com.example.forum.service.CommentService;
 import com.example.forum.service.ReportService;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+import org.thymeleaf.util.StringUtils;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Controller
@@ -20,6 +29,8 @@ public class ForumController {
     @Autowired
     CommentService commentService;
 
+    @Autowired
+    HttpSession session;
     /*
      * 投稿内容表示処理
      */
@@ -58,6 +69,17 @@ public class ForumController {
         ModelAndView mav = new ModelAndView();
         // form用の空のentityを準備
         ReportForm reportForm = new ReportForm();
+
+        //sessionに入れたエラーメッセージを取得
+        //List<String> errorMessages = new ArrayList<String>();
+        //String errorMessageString = (String) session.getAttribute("errorMessages");
+        //errorMessages.add(errorMessageString);
+        List<String> errorMessages = (List<String>) session.getAttribute("errorMessages");
+        //「エラーメッセージが空じゃなければ、エラーメッセージをセットする。」mav.addObjectすることで画面表示の準備できる
+        if(!errorMessages.isEmpty()) {
+            mav.addObject("errorMessages", errorMessages);
+        }
+
         // 画面遷移先を指定
         mav.setViewName("/new");
         // 準備した空のFormを保管
@@ -69,10 +91,29 @@ public class ForumController {
      * 新規投稿処理
      */
     @PostMapping("/add")
-    public ModelAndView addContent(@ModelAttribute("formModel") ReportForm reportForm) {
+    public ModelAndView addContent(@Valid @ModelAttribute("formModel") ReportForm reportForm, BindingResult bindingResult)throws ParseException {
+        //バリデーション
+        List<String> errorMessages = new ArrayList<String>();
+
+        if (bindingResult.hasErrors()) {
+            //エラーがあったら、エラーメッセージを格納する
+            //BindingResultのgetFieldErrors()により、(フィールド名と)エラーメッセージを取得できます
+            for (FieldError error : bindingResult.getFieldErrors()){
+                String message = error.getDefaultMessage();
+                //取得したエラーメッセージをエラーメッセージのリストに格納
+                errorMessages.add(message);
+            }
+
+            // セッションに保存（リダイレクトしても値を保存できるようにするため）
+            session.setAttribute("errorMessages", errorMessages);
+
+            //新規投稿画面に遷移
+            return new ModelAndView("redirect:/new");
+        }
         // 投稿をテーブルに格納
         //Report型の変数reportを引数として、ReportServiceのsaveReportを実行します。
         reportService.saveReport(reportForm);
+
         // その後、rootディレクトリ、つまり、⑤サーバー側：投稿内容表示機能の処理へリダイレクト
         //投稿をテーブルに格納した後、その投稿を表示させてトップ画面へ戻るという仕様
         return new ModelAndView("redirect:/");
@@ -113,10 +154,18 @@ public class ForumController {
      * 投稿編集処理
      */
     @PutMapping("/update/{id}")
-    public ModelAndView updateContent(@PathVariable Integer id, @ModelAttribute("formModel") ReportForm reportForm) {
+    public ModelAndView updateContent(@PathVariable Integer id, @ModelAttribute("formModel") ReportForm reportForm)throws ParseException {
         // 投稿をテーブルに格納
+
+        //updateDateも更新しないといけない
+        //SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        //Date updateDate = null;
+        //String updateStr = sdf.format(new Date());
+        //updateDate = sdf.parse(updateStr);
+
         //Report型の変数reportを引数として、ReportServiceのsaveReportを実行します。
         reportForm.setId(id);
+        //reportForm.setUpdatedDate(updateDate);
         reportService.saveReport(reportForm);
         // その後、rootディレクトリ、つまり、⑤サーバー側：投稿内容表示機能の処理へリダイレクト
         //投稿をテーブルに格納した後、その投稿を表示させてトップ画面へ戻るという仕様
@@ -126,13 +175,20 @@ public class ForumController {
     /*
      * コメント機能追加
      */
-    @PostMapping("/comment/{id}")
-    public ModelAndView commentContent(@PathVariable Integer id, @ModelAttribute("formModel") CommentForm commentForm){
+    @PostMapping("/comment/{reportId}")
+    public ModelAndView commentContent(@PathVariable Integer reportId, @ModelAttribute("formModel") CommentForm commentForm)throws ParseException {
         // 投稿をテーブルに格納
         //Comment型の変数commentを引数として、ReportServiceのsaveReportを実行します。
-        commentForm.setReportId(id);
+        commentForm.setReportId(reportId);
         commentForm.setContent(commentForm.getContent());
         commentService.saveComment(commentForm);
+
+        //コメントの追加とともに投稿の更新日も更新
+        ReportForm reportForm = reportService.editReport(commentForm.getReportId());
+
+        //このIDの投稿を参照してもってきてから更新？
+        reportForm.setUpdatedDate(commentForm.getUpdatedDate());
+        reportService.saveReport(reportForm);
 
         // その後、rootディレクトリ、つまり、⑤サーバー側：投稿内容表示機能の処理へリダイレクト
         //投稿をテーブルに格納した後、その投稿を表示させてトップ画面へ戻るという仕様
@@ -160,7 +216,7 @@ public class ForumController {
      * コメント編集処理
      */
     @PutMapping("/commentUpdate/{id}")
-    public ModelAndView commentUpdateContent(@PathVariable Integer id, @ModelAttribute("formModel") CommentForm commentForm) {
+    public ModelAndView commentUpdateContent(@PathVariable Integer id, @ModelAttribute("formModel") CommentForm commentForm)throws ParseException {
         // 投稿をテーブルに格納
         //Report型の変数reportを引数として、CommentServiceのsaveReportを実行します。
         commentForm.setId(id);

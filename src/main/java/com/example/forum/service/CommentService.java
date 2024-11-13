@@ -10,7 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,7 +28,7 @@ public class CommentService {
      */
     public List<CommentForm> findAllComment() {
         //findByIdメソッドは JpaRepository で定義されているため、CommentRepositoryでメソッドの定義をすることなく、使用できます
-        List<Comment> results = commentRepository.findAll();
+        List<Comment> results = commentRepository.findAllByOrderByUpdatedDateDesc();
         List<CommentForm> comments = setCommentForm(results);
 
         return comments;
@@ -55,7 +58,7 @@ public class CommentService {
     /*
      * レコード追加
      */
-    public void saveComment(CommentForm reqComment) {
+    public void saveComment(CommentForm reqComment)throws ParseException {
         Comment saveComment = setCommentEntity(reqComment);
         //saveメソッドは JpaRepository で定義されているため、ReportRepositoryでメソッドの定義をすることなく、使用できます
         commentRepository.save(saveComment);
@@ -66,13 +69,18 @@ public class CommentService {
      * setReportEntityメソッドでFormからEntityに詰め直してRepositoryに渡しています
      * これはEntityはデータアクセス時の入れ物、FormはViewへの入出力時に使用する入れ物と役割を分けているためです
      */
-    private Comment setCommentEntity(CommentForm reqComment) {
+    private Comment setCommentEntity(CommentForm reqComment)throws ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date updateDate = null;
+        String updateStr = sdf.format(new Date());
+        updateDate = sdf.parse(updateStr);
+
         Comment comment = new Comment();
         comment.setId(reqComment.getId());
         comment.setContent(reqComment.getContent());
         comment.setReportId(reqComment.getReportId());
         comment.setCreatedDate(reqComment.getCreatedDate());
-        comment.setUpdatedDate(reqComment.getUpdatedDate());
+        comment.setUpdatedDate(updateDate);
         return comment;
     }
 

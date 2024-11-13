@@ -13,6 +13,9 @@
   <form method="post" action="/add" th:object="${formModel}">
     <div class="form-area">
       <label>投稿内容</label>
+      <div class="message-icon" th:each="errorMessage : ${errorMessages}">
+        <p th:text="${errorMessage}"></p>
+      </div>
       <textarea class="tweet-box" th:field="*{content}" size="20" maxlength="200" /></textarea><br/>
       <input type="submit" value="投稿" />
       <!--一つ目のform属性の投稿ボタンを押すと、「th:field="*{content}"」がサーバー側に渡されてDBにinsertされていくような流れとなりますね。-->

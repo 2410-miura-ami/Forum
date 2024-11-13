@@ -34,7 +34,7 @@ public class Comment {
     @Column(name = "created_date", insertable = false, updatable = false)
     private Date createdDate;
 
-    @Column(name = "updated_date", insertable = false, updatable = false)
+    @Column(name = "updated_date", insertable = false, updatable = true)
     private Date updatedDate;
 
 }

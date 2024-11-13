@@ -12,5 +12,5 @@ import java.util.List;
 //findAllで実行されている処理はSQL文の「select * from report;」のようにイメージしてもらえれば大丈夫です。
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Integer> {
-
+    public List<Comment> findAllByOrderByUpdatedDateDesc();
 }
